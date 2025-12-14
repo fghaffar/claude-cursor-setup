@@ -1,0 +1,304 @@
+# Cursor Rules - Vue 3 + Django Project
+
+## Tech Stack
+
+### Frontend
+- **Framework**: Vue 3 + Vite
+- **Language**: TypeScript (Composition API)
+- **State**: Pinia
+- **Router**: Vue Router 4
+- **Styling**: Tailwind CSS
+- **Forms**: VeeValidate + Zod
+
+### Backend
+- **Framework**: Django 5.x + Django REST Framework
+- **Language**: Python 3.11+
+- **Database**: PostgreSQL + Django ORM
+- **Auth**: JWT (djangorestframework-simplejwt)
+- **Task Queue**: Celery + Redis
+- **Monitoring**: Sentry + Django logging
+
+---
+
+## Frontend Patterns
+
+### Vue Component (Composition API)
+```vue
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue'
+import { useQuery, useMutation } from '@tanstack/vue-query'
+
+interface Props {
+  itemId: string
+}
+
+const props = defineProps<Props>()
+const emit = defineEmits<{
+  update: [item: Item]
+}>()
+
+// Queries
+const { data: item, isLoading, error } = useQuery({
+  queryKey: ['item', props.itemId],
+  queryFn: () => api.getItem(props.itemId),
+})
+
+// Local state
+const editMode = ref(false)
+
+// Computed
+const formattedDate = computed(() => {
+  return item.value?.createdAt.toLocaleDateString()
+})
+
+// Methods
+const handleSave = async () => {
+  // ...
+}
+</script>
+
+<template>
+  <div v-if="isLoading" class="animate-pulse">Loading...</div>
+  <div v-else-if="error" class="text-red-500">{{ error.message }}</div>
+  <div v-else class="p-4">
+    <h1 class="text-2xl font-bold">{{ item.title }}</h1>
+    <p class="text-gray-600">{{ item.description }}</p>
+    <span class="text-sm text-gray-400">{{ formattedDate }}</span>
+  </div>
+</template>
+```
+
+### Pinia Store
+```typescript
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import { api } from '@/lib/api'
+
+export const useItemStore = defineStore('items', () => {
+  // State
+  const items = ref<Item[]>([])
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+
+  // Getters
+  const itemById = computed(() => (id: string) => {
+    return items.value.find(item => item.id === id)
+  })
+
+  // Actions
+  async function fetchItems() {
+    loading.value = true
+    error.value = null
+    try {
+      items.value = await api.get('/items/')
+    } catch (e) {
+      error.value = e instanceof Error ? e.message : 'Unknown error'
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function createItem(data: CreateItemDto) {
+    const item = await api.post('/items/', data)
+    items.value.push(item)
+    return item
+  }
+
+  return { items, loading, error, itemById, fetchItems, createItem }
+})
+```
+
+### Composable
+```typescript
+// composables/useApi.ts
+import { ref } from 'vue'
+
+export function useApi<T>(fetcher: () => Promise<T>) {
+  const data = ref<T | null>(null)
+  const loading = ref(false)
+  const error = ref<Error | null>(null)
+
+  async function execute() {
+    loading.value = true
+    error.value = null
+    try {
+      data.value = await fetcher()
+    } catch (e) {
+      error.value = e instanceof Error ? e : new Error('Unknown error')
+    } finally {
+      loading.value = false
+    }
+  }
+
+  return { data, loading, error, execute }
+}
+```
+
+---
+
+## Backend Patterns
+
+### Django Model
+```python
+from django.db import models
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class Item(models.Model):
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='items'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', '-created_at']),
+        ]
+
+    def __str__(self):
+        return self.title
+```
+
+### DRF Serializer
+```python
+from rest_framework import serializers
+from .models import Item
+
+class ItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Item
+        fields = ['id', 'title', 'description', 'price', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate_price(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Price must be positive")
+        return value
+```
+
+### DRF ViewSet
+```python
+from rest_framework import viewsets, permissions, status
+from rest_framework.decorators import action
+from rest_framework.response import Response
+import logging
+
+from .models import Item
+from .serializers import ItemSerializer
+
+logger = logging.getLogger(__name__)
+
+class ItemViewSet(viewsets.ModelViewSet):
+    serializer_class = ItemSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Item.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+        logger.info(
+            "Item created",
+            extra={
+                "user_id": self.request.user.id,
+                "item_id": serializer.instance.id
+            }
+        )
+
+    @action(detail=False, methods=['get'])
+    def recent(self, request):
+        """Get 10 most recent items."""
+        recent_items = self.get_queryset()[:10]
+        serializer = self.get_serializer(recent_items, many=True)
+        return Response(serializer.data)
+```
+
+### URL Configuration
+```python
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import ItemViewSet
+
+router = DefaultRouter()
+router.register(r'items', ItemViewSet, basename='item')
+
+urlpatterns = [
+    path('api/', include(router.urls)),
+]
+```
+
+### Error Handling
+```python
+import logging
+import sentry_sdk
+from rest_framework.views import exception_handler
+from rest_framework.response import Response
+from rest_framework import status
+
+logger = logging.getLogger(__name__)
+
+def custom_exception_handler(exc, context):
+    response = exception_handler(exc, context)
+
+    if response is None:
+        # Unhandled exception
+        logger.error(
+            "Unhandled exception",
+            exc_info=exc,
+            extra={
+                "view": context.get('view').__class__.__name__,
+                "request_path": context.get('request').path,
+            }
+        )
+        sentry_sdk.capture_exception(exc)
+        response = Response(
+            {"detail": "Internal server error"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
+
+    return response
+```
+
+---
+
+## Commands
+
+```bash
+# Frontend
+cd frontend && npm run dev     # Development
+cd frontend && npm run build   # Build
+cd frontend && npm run lint    # Lint
+
+# Backend
+cd backend
+source .venv/bin/activate
+python manage.py runserver     # Development
+python manage.py test          # Tests
+python manage.py makemigrations # Create migrations
+python manage.py migrate       # Apply migrations
+python manage.py createsuperuser # Create admin user
+
+# Celery
+celery -A config worker --loglevel=info
+celery -A config beat --loglevel=info  # Scheduled tasks
+```
+
+---
+
+## Don't Do
+
+- Don't use `any` type in TypeScript
+- Don't use Options API (use Composition API)
+- Don't skip serializer validation
+- Don't use `print()` (use Django logging)
+- Don't commit .env files or secrets
+- Don't forget to create migrations after model changes
+- Don't query database in templates (use serializers)

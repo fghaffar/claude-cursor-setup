@@ -1,0 +1,186 @@
+{
+    "version": "1.0",
+    "description": "Skill activation triggers for Next.js 15 + FastAPI project",
+    "projectConfig": {
+        "frontendPath": "frontend",
+        "backendPath": "backend",
+        "frontendExtensions": ["*.tsx", "*.ts"],
+        "backendExtensions": ["*.py"],
+        "frontendLintCommand": "pnpm lint",
+        "backendLintCommand": "python -m ruff check ."
+    },
+    "skills": {
+        "skill-developer": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Meta-skill for creating and managing Claude Code skills",
+            "promptTriggers": {
+                "keywords": [
+                    "skill system",
+                    "create skill",
+                    "add skill",
+                    "skill triggers",
+                    "skill rules",
+                    "hook system",
+                    "skill development",
+                    "skill-rules.json"
+                ],
+                "intentPatterns": [
+                    "(how do|how does|explain).*?skill",
+                    "(create|add|modify|build).*?skill",
+                    "skill.*?(work|trigger|activate|system)"
+                ]
+            }
+        },
+        "backend-dev-guidelines": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Backend development patterns for FastAPI + Python",
+            "promptTriggers": {
+                "keywords": [
+                    "backend",
+                    "fastapi",
+                    "api",
+                    "router",
+                    "route",
+                    "endpoint",
+                    "schema",
+                    "pydantic",
+                    "database",
+                    "sqlalchemy",
+                    "celery",
+                    "task",
+                    "worker",
+                    "error handling",
+                    "exception",
+                    "middleware",
+                    "validation",
+                    "dependency injection"
+                ],
+                "intentPatterns": [
+                    "(create|add|implement|build).*?(route|endpoint|API|router|schema|service)",
+                    "(fix|handle|debug).*?(error|exception|backend)",
+                    "(add|implement).*?(middleware|validation|error.*?handling)",
+                    "(organize|structure|refactor).*?(backend|service|API)",
+                    "(how to|best practice).*?(backend|route|api|fastapi)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "backend/**/*.py",
+                    "api/**/*.py"
+                ],
+                "pathExclusions": [
+                    "**/*_test.py",
+                    "**/test_*.py",
+                    "**/__pycache__/**"
+                ],
+                "contentPatterns": [
+                    "from fastapi",
+                    "@router\\.",
+                    "class.*\\(BaseModel\\)",
+                    "async def"
+                ]
+            }
+        },
+        "frontend-dev-guidelines": {
+            "type": "guardrail",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Frontend development patterns for Next.js 15 + React 19 + TypeScript",
+            "promptTriggers": {
+                "keywords": [
+                    "component",
+                    "page",
+                    "ui",
+                    "interface",
+                    "modal",
+                    "dialog",
+                    "form",
+                    "styling",
+                    "tailwind",
+                    "frontend",
+                    "next.js",
+                    "nextjs",
+                    "react",
+                    "shadcn",
+                    "radix",
+                    "tanstack",
+                    "react-query",
+                    "zustand",
+                    "server component",
+                    "client component",
+                    "app router"
+                ],
+                "intentPatterns": [
+                    "(create|add|make|build|update|modify|edit).*?(component|UI|page|modal|dialog|form)",
+                    "(how to|best practice).*?(component|react|next|frontend)",
+                    "(style|design|layout).*?(component|UI|page)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "frontend/**/*.tsx",
+                    "frontend/**/*.ts",
+                    "src/**/*.tsx",
+                    "app/**/*.tsx"
+                ],
+                "pathExclusions": [
+                    "**/*.test.tsx",
+                    "**/*.test.ts",
+                    "**/*.spec.tsx",
+                    "**/node_modules/**"
+                ],
+                "contentPatterns": [
+                    "'use client'",
+                    "import.*from.*react",
+                    "import.*from.*next"
+                ]
+            },
+            "skipConditions": {
+                "sessionSkillUsed": true,
+                "fileMarkers": [
+                    "@skip-validation"
+                ],
+                "envOverride": "SKIP_FRONTEND_GUIDELINES"
+            }
+        },
+        "error-tracking": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Error tracking and monitoring patterns (Sentry)",
+            "promptTriggers": {
+                "keywords": [
+                    "error handling",
+                    "exception",
+                    "error tracking",
+                    "sentry",
+                    "monitoring",
+                    "logging",
+                    "capture_exception"
+                ],
+                "intentPatterns": [
+                    "(add|create|implement|setup).*?(error handling|error tracking|sentry)",
+                    "(fix|handle|catch).*?(error|exception)",
+                    "(how to|best practice).*?(error|monitoring|logging)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "**/*.py",
+                    "**/*.ts",
+                    "**/*.tsx"
+                ],
+                "contentPatterns": [
+                    "import.*sentry",
+                    "capture_exception",
+                    "capture_message",
+                    "sentry_sdk"
+                ]
+            }
+        }
+    }
+}

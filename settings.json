@@ -1,0 +1,19 @@
+{
+  "hooks": {
+    "userPromptSubmit": {
+      "command": ["tsx", ".claude/hooks/skill-activation-prompt.ts"],
+      "description": "Auto-activate relevant skills based on prompt keywords and intent"
+    },
+    "stop": [
+      {
+        "command": ["tsx", ".claude/hooks/build-checker.ts"],
+        "description": "Check for TypeScript/Python linting errors after edits"
+      },
+      {
+        "command": ["tsx", ".claude/hooks/error-handling-reminder.ts"],
+        "description": "Remind about error handling best practices"
+      }
+    ]
+  },
+  "mcpServers": {}
+}

@@ -1,0 +1,16 @@
+{
+  "_comment": "Local settings - add to .gitignore",
+  "permissions": {
+    "allow": [
+      "Bash(curl:*)",
+      "Bash(python -m json.tool:*)",
+      "Bash(source .venv/bin/activate)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(cat:*)",
+      "Bash(jq:*)",
+      "Bash(awk:*)",
+      "Bash(chmod:*)"
+    ]
+  }
+}

@@ -1,0 +1,199 @@
+{
+    "version": "1.0",
+    "description": "Skill activation triggers for [YOUR_PROJECT_NAME]. Controls when skills automatically suggest or block actions.",
+    "projectConfig": {
+        "_comment": "CUSTOMIZE: Update these paths and settings for your project",
+        "frontendPath": "frontend",
+        "backendPath": "backend",
+        "frontendExtensions": ["*.tsx", "*.ts", "*.jsx", "*.js", "*.vue", "*.svelte"],
+        "backendExtensions": ["*.py", "*.go", "*.rs", "*.java", "*.ts"],
+        "frontendLintCommand": "pnpm lint",
+        "backendLintCommand": "python -m ruff check ."
+    },
+    "skills": {
+        "skill-developer": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Meta-skill for creating and managing Claude Code skills",
+            "promptTriggers": {
+                "keywords": [
+                    "skill system",
+                    "create skill",
+                    "add skill",
+                    "skill triggers",
+                    "skill rules",
+                    "hook system",
+                    "skill development",
+                    "skill-rules.json"
+                ],
+                "intentPatterns": [
+                    "(how do|how does|explain).*?skill",
+                    "(create|add|modify|build).*?skill",
+                    "skill.*?(work|trigger|activate|system)"
+                ]
+            }
+        },
+        "backend-dev-guidelines": {
+            "_comment": "CUSTOMIZE: Update keywords for your backend framework (FastAPI, Django, Express, etc.)",
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Backend development patterns for [YOUR_BACKEND_FRAMEWORK]",
+            "promptTriggers": {
+                "keywords": [
+                    "backend",
+                    "backend development",
+                    "api",
+                    "router",
+                    "route",
+                    "endpoint",
+                    "schema",
+                    "database",
+                    "error handling",
+                    "exception",
+                    "middleware",
+                    "validation",
+                    "_ADD_YOUR_FRAMEWORK_KEYWORDS_HERE_"
+                ],
+                "intentPatterns": [
+                    "(create|add|implement|build).*?(route|endpoint|API|router|schema)",
+                    "(fix|handle|debug).*?(error|exception|backend)",
+                    "(add|implement).*?(middleware|validation|error.*?handling)",
+                    "(organize|structure|refactor).*?(backend|service|API)",
+                    "(how to|best practice).*?(backend|route|api)"
+                ]
+            },
+            "fileTriggers": {
+                "_comment": "CUSTOMIZE: Update paths for your project structure",
+                "pathPatterns": [
+                    "backend/**/*.py",
+                    "server/**/*.py",
+                    "api/**/*.py",
+                    "src/server/**/*.ts",
+                    "src/api/**/*.ts"
+                ],
+                "pathExclusions": [
+                    "**/*_test.py",
+                    "**/test_*.py",
+                    "**/*.test.ts",
+                    "**/__pycache__/**",
+                    "**/migrations/**",
+                    "**/node_modules/**"
+                ],
+                "contentPatterns": [
+                    "_ADD_YOUR_FRAMEWORK_IMPORTS_HERE_"
+                ]
+            }
+        },
+        "frontend-dev-guidelines": {
+            "_comment": "CUSTOMIZE: Update keywords for your frontend framework (React, Vue, Angular, etc.)",
+            "type": "guardrail",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Frontend development patterns for [YOUR_FRONTEND_FRAMEWORK]",
+            "promptTriggers": {
+                "keywords": [
+                    "component",
+                    "ui",
+                    "interface",
+                    "page",
+                    "modal",
+                    "dialog",
+                    "form",
+                    "styling",
+                    "frontend",
+                    "_ADD_YOUR_FRAMEWORK_KEYWORDS_HERE_"
+                ],
+                "intentPatterns": [
+                    "(create|add|make|build|update|modify|edit).*?(component|UI|page|modal|dialog|form)",
+                    "(how to|best practice).*?(component|react|vue|angular)",
+                    "(style|design|layout).*?(component|UI)"
+                ]
+            },
+            "fileTriggers": {
+                "_comment": "CUSTOMIZE: Update paths and extensions for your project",
+                "pathPatterns": [
+                    "frontend/**/*.tsx",
+                    "frontend/**/*.ts",
+                    "frontend/**/*.vue",
+                    "src/**/*.tsx",
+                    "src/**/*.vue",
+                    "app/**/*.tsx"
+                ],
+                "pathExclusions": [
+                    "**/*.test.tsx",
+                    "**/*.test.ts",
+                    "**/*.spec.tsx",
+                    "**/*.spec.ts",
+                    "**/node_modules/**"
+                ],
+                "contentPatterns": [
+                    "_ADD_YOUR_FRAMEWORK_IMPORTS_HERE_"
+                ]
+            },
+            "blockMessage": "CUSTOMIZE: Add your block message here if using enforcement: block",
+            "skipConditions": {
+                "sessionSkillUsed": true,
+                "fileMarkers": [
+                    "@skip-validation"
+                ],
+                "envOverride": "SKIP_FRONTEND_GUIDELINES"
+            }
+        },
+        "error-tracking": {
+            "_comment": "CUSTOMIZE: Update for your error tracking solution (Sentry, Datadog, etc.)",
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Error tracking and monitoring patterns",
+            "promptTriggers": {
+                "keywords": [
+                    "error handling",
+                    "exception",
+                    "error tracking",
+                    "monitoring",
+                    "logging",
+                    "_ADD_YOUR_MONITORING_TOOL_HERE_"
+                ],
+                "intentPatterns": [
+                    "(add|create|implement|setup).*?(error handling|error tracking)",
+                    "(fix|handle|catch).*?(error|exception)",
+                    "(how to|best practice).*?(error|monitoring)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "**/*.py",
+                    "**/*.ts",
+                    "**/*.tsx"
+                ],
+                "contentPatterns": [
+                    "import.*sentry",
+                    "capture_exception",
+                    "capture_message"
+                ]
+            }
+        }
+    },
+    "notes": {
+        "enforcement_types": {
+            "suggest": "Skill suggestion appears but doesn't block execution",
+            "block": "Requires skill to be used before proceeding (guardrail)",
+            "warn": "Shows warning but allows proceeding"
+        },
+        "priority_levels": {
+            "critical": "Highest - Always trigger when matched",
+            "high": "Important - Trigger for most matches",
+            "medium": "Moderate - Trigger for clear matches",
+            "low": "Optional - Trigger only for explicit matches"
+        },
+        "customization_guide": {
+            "step1": "Replace [YOUR_PROJECT_NAME] with your project name",
+            "step2": "Update pathPatterns to match your directory structure",
+            "step3": "Add framework-specific keywords (fastapi, django, react, vue, etc.)",
+            "step4": "Add framework-specific contentPatterns (import statements)",
+            "step5": "Remove _comment fields before production use"
+        }
+    }
+}

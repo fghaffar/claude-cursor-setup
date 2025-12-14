@@ -1,0 +1,178 @@
+{
+    "version": "1.0",
+    "description": "Skill activation triggers for Vue 3 + Django project",
+    "projectConfig": {
+        "frontendPath": "frontend",
+        "backendPath": "backend",
+        "frontendExtensions": ["*.vue", "*.ts", "*.js"],
+        "backendExtensions": ["*.py"],
+        "frontendLintCommand": "npm run lint",
+        "backendLintCommand": "python -m ruff check ."
+    },
+    "skills": {
+        "skill-developer": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Meta-skill for creating and managing Claude Code skills",
+            "promptTriggers": {
+                "keywords": [
+                    "skill system",
+                    "create skill",
+                    "add skill",
+                    "skill triggers",
+                    "skill rules"
+                ],
+                "intentPatterns": [
+                    "(how do|how does|explain).*?skill",
+                    "(create|add|modify|build).*?skill"
+                ]
+            }
+        },
+        "backend-dev-guidelines": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Backend development patterns for Django + Python",
+            "promptTriggers": {
+                "keywords": [
+                    "backend",
+                    "django",
+                    "api",
+                    "view",
+                    "viewset",
+                    "serializer",
+                    "model",
+                    "migration",
+                    "database",
+                    "orm",
+                    "queryset",
+                    "drf",
+                    "django rest framework",
+                    "admin",
+                    "middleware",
+                    "celery",
+                    "task",
+                    "signal"
+                ],
+                "intentPatterns": [
+                    "(create|add|implement|build).*?(view|endpoint|API|model|serializer)",
+                    "(fix|handle|debug).*?(error|exception|backend|django)",
+                    "(add|implement).*?(middleware|validation|authentication)",
+                    "(how to|best practice).*?(backend|django|drf)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "backend/**/*.py",
+                    "**/views.py",
+                    "**/models.py",
+                    "**/serializers.py",
+                    "**/urls.py"
+                ],
+                "pathExclusions": [
+                    "**/test_*.py",
+                    "**/tests.py",
+                    "**/__pycache__/**",
+                    "**/migrations/**"
+                ],
+                "contentPatterns": [
+                    "from django",
+                    "from rest_framework",
+                    "class.*\\(models\\.Model\\)",
+                    "class.*\\(APIView\\)",
+                    "class.*\\(ViewSet\\)"
+                ]
+            }
+        },
+        "frontend-dev-guidelines": {
+            "type": "guardrail",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Frontend development patterns for Vue 3 + TypeScript + Composition API",
+            "promptTriggers": {
+                "keywords": [
+                    "component",
+                    "page",
+                    "ui",
+                    "interface",
+                    "modal",
+                    "dialog",
+                    "form",
+                    "styling",
+                    "frontend",
+                    "vue",
+                    "vuejs",
+                    "composition api",
+                    "pinia",
+                    "vuex",
+                    "vue router",
+                    "composable",
+                    "ref",
+                    "reactive",
+                    "computed",
+                    "watch"
+                ],
+                "intentPatterns": [
+                    "(create|add|make|build|update|modify).*?(component|UI|page|modal|form)",
+                    "(how to|best practice).*?(component|vue|frontend)",
+                    "(style|design|layout).*?(component|UI)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "frontend/**/*.vue",
+                    "frontend/**/*.ts",
+                    "src/**/*.vue"
+                ],
+                "pathExclusions": [
+                    "**/*.test.ts",
+                    "**/*.spec.ts",
+                    "**/node_modules/**"
+                ],
+                "contentPatterns": [
+                    "<script.*setup",
+                    "defineComponent",
+                    "import.*from.*vue"
+                ]
+            },
+            "skipConditions": {
+                "sessionSkillUsed": true,
+                "fileMarkers": ["@skip-validation"],
+                "envOverride": "SKIP_FRONTEND_GUIDELINES"
+            }
+        },
+        "error-tracking": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Error tracking and monitoring patterns",
+            "promptTriggers": {
+                "keywords": [
+                    "error handling",
+                    "exception",
+                    "error tracking",
+                    "sentry",
+                    "monitoring",
+                    "logging"
+                ],
+                "intentPatterns": [
+                    "(add|create|implement|setup).*?(error handling|error tracking|logging)",
+                    "(fix|handle|catch).*?(error|exception)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "**/*.py",
+                    "**/*.ts",
+                    "**/*.vue"
+                ],
+                "contentPatterns": [
+                    "import.*sentry",
+                    "sentry_sdk",
+                    "capture_exception"
+                ]
+            }
+        }
+    }
+}

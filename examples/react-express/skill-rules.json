@@ -1,0 +1,177 @@
+{
+    "version": "1.0",
+    "description": "Skill activation triggers for React (Vite) + Express.js project",
+    "projectConfig": {
+        "frontendPath": "client",
+        "backendPath": "server",
+        "frontendExtensions": ["*.tsx", "*.ts", "*.jsx", "*.js"],
+        "backendExtensions": ["*.ts", "*.js"],
+        "frontendLintCommand": "npm run lint",
+        "backendLintCommand": "npm run lint"
+    },
+    "skills": {
+        "skill-developer": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Meta-skill for creating and managing Claude Code skills",
+            "promptTriggers": {
+                "keywords": [
+                    "skill system",
+                    "create skill",
+                    "add skill",
+                    "skill triggers",
+                    "skill rules"
+                ],
+                "intentPatterns": [
+                    "(how do|how does|explain).*?skill",
+                    "(create|add|modify|build).*?skill"
+                ]
+            }
+        },
+        "backend-dev-guidelines": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Backend development patterns for Express.js + TypeScript/Node.js",
+            "promptTriggers": {
+                "keywords": [
+                    "backend",
+                    "express",
+                    "api",
+                    "router",
+                    "route",
+                    "endpoint",
+                    "middleware",
+                    "controller",
+                    "service",
+                    "database",
+                    "prisma",
+                    "sequelize",
+                    "mongoose",
+                    "mongodb",
+                    "postgresql",
+                    "error handling",
+                    "validation",
+                    "joi",
+                    "zod"
+                ],
+                "intentPatterns": [
+                    "(create|add|implement|build).*?(route|endpoint|API|controller|service)",
+                    "(fix|handle|debug).*?(error|exception|backend)",
+                    "(add|implement).*?(middleware|validation|error.*?handling)",
+                    "(how to|best practice).*?(backend|express|node)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "server/**/*.ts",
+                    "server/**/*.js",
+                    "api/**/*.ts",
+                    "backend/**/*.ts"
+                ],
+                "pathExclusions": [
+                    "**/*.test.ts",
+                    "**/*.spec.ts",
+                    "**/node_modules/**"
+                ],
+                "contentPatterns": [
+                    "import.*express",
+                    "require\\(.*express",
+                    "router\\.",
+                    "app\\.(get|post|put|delete|patch)"
+                ]
+            }
+        },
+        "frontend-dev-guidelines": {
+            "type": "guardrail",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Frontend development patterns for React + TypeScript + Vite",
+            "promptTriggers": {
+                "keywords": [
+                    "component",
+                    "page",
+                    "ui",
+                    "interface",
+                    "modal",
+                    "dialog",
+                    "form",
+                    "styling",
+                    "css",
+                    "frontend",
+                    "react",
+                    "vite",
+                    "redux",
+                    "zustand",
+                    "react-query",
+                    "tanstack",
+                    "hook",
+                    "context"
+                ],
+                "intentPatterns": [
+                    "(create|add|make|build|update|modify).*?(component|UI|page|modal|form)",
+                    "(how to|best practice).*?(component|react|frontend)",
+                    "(style|design|layout).*?(component|UI)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "client/**/*.tsx",
+                    "client/**/*.ts",
+                    "src/**/*.tsx",
+                    "src/**/*.jsx"
+                ],
+                "pathExclusions": [
+                    "**/*.test.tsx",
+                    "**/*.spec.tsx",
+                    "**/node_modules/**"
+                ],
+                "contentPatterns": [
+                    "import.*from.*react",
+                    "useState|useEffect|useContext"
+                ]
+            },
+            "skipConditions": {
+                "sessionSkillUsed": true,
+                "fileMarkers": ["@skip-validation"],
+                "envOverride": "SKIP_FRONTEND_GUIDELINES"
+            }
+        },
+        "error-tracking": {
+            "type": "domain",
+            "enforcement": "suggest",
+            "priority": "high",
+            "description": "Error tracking and monitoring patterns",
+            "promptTriggers": {
+                "keywords": [
+                    "error handling",
+                    "exception",
+                    "error tracking",
+                    "sentry",
+                    "datadog",
+                    "monitoring",
+                    "logging",
+                    "winston"
+                ],
+                "intentPatterns": [
+                    "(add|create|implement|setup).*?(error handling|error tracking|logging)",
+                    "(fix|handle|catch).*?(error|exception)"
+                ]
+            },
+            "fileTriggers": {
+                "pathPatterns": [
+                    "**/*.ts",
+                    "**/*.tsx",
+                    "**/*.js"
+                ],
+                "contentPatterns": [
+                    "import.*sentry",
+                    "Sentry\\.",
+                    "captureException",
+                    "winston"
+                ]
+            }
+        }
+    }
+}

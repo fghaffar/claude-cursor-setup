@@ -1,0 +1,220 @@
+# CLAUDE.md
+
+**Living Document** - Last Updated: [DATE]
+
+This file provides global guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Claude Code Infrastructure
+
+This project uses the **Claude Code Infrastructure System** for enhanced development workflow.
+
+**Quick Links**:
+- [Full Documentation](.claude/README.md) - Complete guide to skills, hooks, and commands
+- [Quick Start](.claude/QUICK_START.md) - 5-minute introduction
+
+**Key Features**:
+- **Auto-Activating Skills**: Frontend/backend guidelines load automatically based on keywords
+- **Build Checking Hooks**: Catches TypeScript/Python errors immediately after changes
+- **Dev Docs Workflow**: Never lose context across long sessions ([dev/active/](dev/active/))
+- **Slash Commands**: `/dev-docs`, `/code-review`, `/dev-docs-update` for common workflows
+
+## Quick Start
+
+### Initial Setup
+```bash
+# Frontend
+cd frontend
+[pnpm/npm/yarn] install
+[pnpm/npm/yarn] dev
+
+# Backend
+cd backend/api
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload
+
+# [Add any additional setup commands]
+```
+
+### Common Commands
+```bash
+# Run tests
+cd frontend && [pnpm/npm/yarn] test
+cd backend/api && pytest
+
+# Code quality
+cd frontend && [pnpm/npm/yarn] lint
+cd backend/api && ruff check . && mypy .
+```
+
+## Architecture Overview
+
+### System Components
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    Frontend ([FRAMEWORK])                    │
+│  - [UI Library] + [Styling Solution]                        │
+│  - [State Management] + [Data Fetching]                     │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│              Backend API ([FRAMEWORK] + [LANGUAGE])          │
+│  - REST endpoints with [Auth Method]                         │
+│  - [Key Features]                                            │
+└─────────────────────────────────────────────────────────────┘
+                              ↓
+┌─────────────────────────────────────────────────────────────┐
+│                    [Database / Services]                     │
+│  - [Database Name] ([Database Type])                         │
+│  - [Other Services: Cache, Queue, etc.]                      │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Data Flow
+1. **[Step 1]**: [Description]
+2. **[Step 2]**: [Description]
+3. **[Step 3]**: [Description]
+
+## Environment Configuration
+
+### Required Environment Variables
+```bash
+# Frontend (.env.local)
+NEXT_PUBLIC_API_URL=http://localhost:8000
+
+# Backend (.env)
+DATABASE_URL=postgresql://user:pass@localhost:5432/dbname
+SECRET_KEY=your-secret-key
+# [Add your required env vars]
+```
+
+### Local Dependencies
+- **[Language]** version X.X with `[package manager]`
+- **[Database]** for data persistence
+- **[Other tools]** for [purpose]
+
+## Key Features
+
+### [Feature 1 Name]
+- [Brief description]
+- [Key implementation details]
+
+### [Feature 2 Name]
+- [Brief description]
+- [Key implementation details]
+
+## Development Guidelines
+
+### Code Style
+- **[Language 1]**: [Formatter], [Linter], [Type checker]
+- **[Language 2]**: [Tools]
+- **Imports**: [Import ordering convention]
+- **Naming**: PascalCase for components, camelCase for functions, UPPER_CASE for constants
+
+### Error Handling Patterns
+```python
+# Backend: Always use structured logging
+logger.error("Operation failed", extra={
+    "context_key": context_value,
+    "error": str(e),
+})
+
+# Frontend: Handle API errors gracefully
+if (!response.ok) {
+  const error = await response.json();
+  throw new Error(error.detail || 'Unknown error');
+}
+```
+
+### Testing Approach
+- **Unit Tests**: [Coverage expectations and patterns]
+- **Integration Tests**: [When and how to use]
+- **E2E Tests**: [If applicable]
+
+## Project Quirks & Gotchas
+
+> **IMPORTANT**: Read this section to avoid common pitfalls specific to this project.
+
+### [Quirk Category 1]
+
+#### 1. **[Quirk Title]**
+```[language]
+# [Bad example]
+[code]
+
+# [Good example]
+[code]
+```
+**Why**: [Explanation]
+
+#### 2. **[Another Quirk]**
+[Description and examples]
+
+### [Quirk Category 2]
+
+#### 3. **[Quirk Title]**
+[Description and examples]
+
+## Common Issues & Solutions
+
+### [Issue 1 Name]
+**Cause**: [What causes this issue]
+**Solution**:
+1. [Step 1]
+2. [Step 2]
+
+### [Issue 2 Name]
+**Cause**: [What causes this issue]
+**Solution**: [How to fix]
+
+## Pre-Commit Checklist
+
+Before committing code, ensure:
+
+### Frontend
+- [ ] `[lint command]` - No linting errors
+- [ ] `[type-check command]` - No TypeScript errors
+- [ ] No `any` types in new code
+- [ ] Error states handled properly
+
+### Backend
+- [ ] Virtual environment activated
+- [ ] `[lint command]` - Code formatted
+- [ ] `[type-check command]` - No type errors
+- [ ] `pytest` - All tests pass
+- [ ] Structured logging with `extra={}` context
+
+### General
+- [ ] No secrets committed
+- [ ] Environment variables documented if new ones added
+- [ ] CLAUDE.md updated if patterns changed
+
+## Keep This Document Living
+
+**When to update this CLAUDE.md**:
+1. **New quirks discovered**: Add to "Project Quirks & Gotchas" section
+2. **Architecture changes**: Update system diagrams
+3. **New environment variables**: Document in configuration section
+4. **New common issues**: Add to "Common Issues & Solutions"
+
+**How to update**:
+```bash
+# 1. Edit this file
+# 2. Update "Last Updated" date at top
+# 3. Commit with descriptive message
+git add CLAUDE.md
+git commit -m "docs: update CLAUDE.md - [what changed]"
+```
+
+## Additional Documentation
+
+- **[Area 1]**: [path/to/docs]
+- **[Area 2]**: [path/to/docs]
+- **Claude Code Skills**: [.claude/skills/](.claude/skills/) - Auto-activating guidelines
+- **Dev Docs Guide**: [dev/active/README.md](dev/active/README.md) - Context preservation workflow
+
+---
+
+> **Template Version**: 1.0.0
+> **Compatible With**: Claude Code, Cursor (Claude models), VS Code Claude Extension

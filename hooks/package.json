@@ -1,0 +1,15 @@
+{
+  "name": "claude-code-hooks",
+  "version": "1.0.0",
+  "description": "Claude Code automation hooks",
+  "type": "module",
+  "scripts": {
+    "test:skill-activation": "echo '{\"cwd\": \".\", \"prompt\": \"create a component\"}' | tsx skill-activation-prompt.ts",
+    "test:build-checker": "echo '{\"cwd\": \".\", \"tool_uses\": [{\"tool\": \"Edit\", \"parameters\": {\"file_path\": \"/frontend/test.tsx\"}}]}' | tsx build-checker.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  }
+}

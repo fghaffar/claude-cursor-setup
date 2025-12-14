@@ -1,0 +1,221 @@
+# Cursor Rules - React + Express.js Project
+
+## Tech Stack
+
+### Frontend
+- **Framework**: React 18 + Vite
+- **Language**: TypeScript (strict mode)
+- **Styling**: Tailwind CSS / styled-components
+- **State**: TanStack Query (server) + Zustand/Redux (client)
+- **Forms**: React Hook Form + Zod
+
+### Backend
+- **Framework**: Express.js
+- **Language**: TypeScript + Node.js
+- **Database**: PostgreSQL (Prisma) / MongoDB (Mongoose)
+- **Auth**: JWT + Passport.js
+- **Queue**: Bull/BullMQ + Redis
+- **Monitoring**: Sentry + Winston
+
+---
+
+## Frontend Patterns
+
+### Component Structure
+```typescript
+import { useState, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+
+interface Props {
+  itemId: string;
+}
+
+export function ItemDetail({ itemId }: Props) {
+  // 1. Hooks
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['item', itemId],
+    queryFn: () => api.getItem(itemId),
+  });
+
+  // 2. Handlers
+  const handleAction = () => {...};
+
+  // 3. Render
+  if (isLoading) return <Spinner />;
+  if (error) return <ErrorDisplay error={error} />;
+
+  return (
+    <div className="p-4">
+      <h1>{data.title}</h1>
+    </div>
+  );
+}
+```
+
+### API Client
+```typescript
+// api/client.ts
+const BASE_URL = import.meta.env.VITE_API_URL;
+
+export const api = {
+  async get<T>(path: string): Promise<T> {
+    const response = await fetch(`${BASE_URL}${path}`, {
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!response.ok) throw new Error(response.statusText);
+    return response.json();
+  },
+
+  async post<T>(path: string, data: unknown): Promise<T> {
+    const response = await fetch(`${BASE_URL}${path}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) throw new Error(response.statusText);
+    return response.json();
+  },
+};
+```
+
+---
+
+## Backend Patterns
+
+### Express Router
+```typescript
+import { Router } from 'express';
+import { authenticate } from '../middleware/auth';
+import { validate } from '../middleware/validate';
+import { createItemSchema } from '../schemas/item.schema';
+
+const router = Router();
+
+router.get('/', authenticate, async (req, res, next) => {
+  try {
+    const items = await ItemService.findAll(req.user.id);
+    res.json(items);
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.post('/', authenticate, validate(createItemSchema), async (req, res, next) => {
+  try {
+    const item = await ItemService.create(req.user.id, req.body);
+    res.status(201).json(item);
+  } catch (error) {
+    next(error);
+  }
+});
+
+export default router;
+```
+
+### Service Layer
+```typescript
+// services/item.service.ts
+import { prisma } from '../lib/prisma';
+import { CreateItemDto, UpdateItemDto } from '../schemas/item.schema';
+
+export class ItemService {
+  static async findAll(userId: string) {
+    return prisma.item.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  static async create(userId: string, data: CreateItemDto) {
+    return prisma.item.create({
+      data: { ...data, userId },
+    });
+  }
+
+  static async update(id: string, userId: string, data: UpdateItemDto) {
+    return prisma.item.update({
+      where: { id, userId },
+      data,
+    });
+  }
+}
+```
+
+### Error Handling Middleware
+```typescript
+import { Request, Response, NextFunction } from 'express';
+import * as Sentry from '@sentry/node';
+import logger from '../lib/logger';
+
+export function errorHandler(
+  err: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  logger.error('Request error', {
+    error: err.message,
+    stack: err.stack,
+    path: req.path,
+    method: req.method,
+  });
+
+  Sentry.captureException(err);
+
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({ error: err.message });
+  }
+
+  res.status(500).json({ error: 'Internal server error' });
+}
+```
+
+### Validation with Zod
+```typescript
+import { z } from 'zod';
+
+export const createItemSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().max(1000).optional(),
+  price: z.number().positive(),
+});
+
+export type CreateItemDto = z.infer<typeof createItemSchema>;
+```
+
+---
+
+## Commands
+
+```bash
+# Frontend
+cd client && npm run dev    # Development
+cd client && npm run build  # Build
+cd client && npm run lint   # Lint
+cd client && npm test       # Test
+
+# Backend
+cd server && npm run dev    # Development
+cd server && npm run build  # Build
+cd server && npm run lint   # Lint
+cd server && npm test       # Test
+
+# Database (Prisma)
+npx prisma migrate dev      # Run migrations
+npx prisma generate         # Generate client
+npx prisma studio           # Open Prisma Studio
+```
+
+---
+
+## Don't Do
+
+- Don't use `any` type
+- Don't use `console.log` (use logger)
+- Don't expose internal errors to clients
+- Don't forget to wrap async handlers in try-catch
+- Don't commit .env files
+- Don't skip validation middleware
