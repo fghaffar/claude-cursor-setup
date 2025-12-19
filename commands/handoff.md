@@ -2,6 +2,15 @@
 
 Generate a handoff document for transitioning between Claude Code and Cursor (or vice versa).
 
+## When to Use
+
+Run `/handoff` in Claude Code **BEFORE** hitting the rate limit:
+- When you see rate limit warnings approaching
+- Before ending a work session
+- When planning to switch to Cursor for a while
+
+**Run this proactively** - Claude Code needs to be active to analyze the session and create a rich handoff document.
+
 ## Instructions
 
 When the user runs `/handoff`, create a comprehensive handoff document that captures the current development state. This enables seamless continuation in another AI coding tool.
@@ -102,3 +111,13 @@ Tell the user:
 1. Handoff documents created
 2. How to continue in the other tool
 3. How to resume back in Claude Code
+
+## Emergency Fallback
+
+If you forgot to run `/handoff` and Claude Code is already rate-limited:
+
+```bash
+./handoff/handoff.sh auto "Task description" "Additional context"
+```
+
+This extracts basic info from git state, but lacks session context. **Always prefer running `/handoff` before the limit.**

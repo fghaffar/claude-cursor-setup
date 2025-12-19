@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Handoff Management Script
-# Manages transitions between Claude Code and Cursor
+# Auto-generates handoff documents from git state and optional context
+# Designed to work non-interactively when Claude Code hits rate limits
 
 set -e
 
@@ -25,26 +26,39 @@ print_header() {
 }
 
 show_help() {
-    echo "Handoff Management - Transition between Claude Code and Cursor"
-    echo ""
-    echo "Usage: ./handoff.sh [command]"
-    echo ""
-    echo "Commands:"
-    echo "  new       Create a new handoff document interactively"
-    echo "  quick     Quick handoff with minimal prompts"
-    echo "  status    Show current handoff status"
-    echo "  archive   Archive current handoff and start fresh"
-    echo "  history   Show handoff history"
-    echo "  cursor    Prepare handoff for Cursor (creates .cursor-handoff)"
-    echo "  claude    Prepare handoff for Claude Code"
-    echo "  help      Show this help"
-    echo ""
-    echo "Workflow:"
-    echo "  1. Working in Claude Code, hit rate limit"
-    echo "  2. Run: /handoff (in Claude Code) OR ./handoff.sh quick"
-    echo "  3. Switch to Cursor, start with: 'Resume from handoff'"
-    echo "  4. When done in Cursor, run: ./handoff.sh quick"
-    echo "  5. Switch back to Claude Code, run: /resume"
+    cat << 'EOF'
+Handoff Management - Transition between Claude Code and Cursor
+
+RECOMMENDED WORKFLOW:
+  1. In Claude Code, BEFORE hitting rate limit, run: /handoff
+     (Claude Code creates rich handoff from session context)
+  2. Switch to Cursor, say: "Resume from handoff"
+  3. When done in Cursor, run: ./handoff.sh auto "status update"
+  4. Switch back to Claude Code, run: /resume
+
+This script is for:
+  - Emergency fallback if you forgot to run /handoff
+  - Creating handoffs when switching FROM Cursor back to Claude Code
+  - Checking handoff status
+
+Usage: ./handoff.sh [command] [options]
+
+Commands:
+  auto [task] [context]   Generate handoff from git state (fallback/Cursor use)
+  status                  Show current handoff status
+  archive                 Archive current handoff
+  history                 Show handoff history
+  help                    Show this help
+
+Examples:
+  ./handoff.sh auto "Building user dashboard" "Auth done, need UI"
+  ./handoff.sh status
+  ./handoff.sh  # Same as 'auto' with no args
+
+Note: The /handoff command in Claude Code produces MUCH richer context
+since it has access to the full conversation history. Use this script
+only as a fallback or when switching FROM Cursor.
+EOF
 }
 
 ensure_dirs() {
@@ -52,135 +66,176 @@ ensure_dirs() {
     mkdir -p "$ARCHIVE_DIR"
 }
 
-create_handoff() {
+# Get modified files from git
+get_modified_files() {
+    local files=""
+    
+    # Staged files
+    staged=$(git diff --cached --name-only 2>/dev/null || echo "")
+    
+    # Unstaged modified files
+    unstaged=$(git diff --name-only 2>/dev/null || echo "")
+    
+    # Untracked files
+    untracked=$(git ls-files --others --exclude-standard 2>/dev/null || echo "")
+    
+    # Combine unique
+    echo "$staged"$'\n'"$unstaged"$'\n'"$untracked" | sort -u | grep -v '^$' || echo ""
+}
+
+# Get recent commits (last 5)
+get_recent_commits() {
+    git log --oneline -5 2>/dev/null || echo "No commits found"
+}
+
+# Get uncommitted changes summary
+get_changes_summary() {
+    local summary=""
+    
+    # Count of changes
+    local staged_count=$(git diff --cached --numstat 2>/dev/null | wc -l | tr -d ' ')
+    local unstaged_count=$(git diff --numstat 2>/dev/null | wc -l | tr -d ' ')
+    local untracked_count=$(git ls-files --others --exclude-standard 2>/dev/null | wc -l | tr -d ' ')
+    
+    echo "Staged: $staged_count files, Unstaged: $unstaged_count files, Untracked: $untracked_count files"
+}
+
+# Get current branch
+get_branch() {
+    git branch --show-current 2>/dev/null || echo "unknown"
+}
+
+# Get diff stats
+get_diff_stats() {
+    git diff --stat 2>/dev/null | tail -1 || echo ""
+}
+
+# Auto-generate handoff from git state
+auto_handoff() {
     ensure_dirs
-
-    print_header "Create Handoff Document"
-
-    read -p "Task/Goal (one line): " TASK
-    read -p "Source tool (claude/cursor): " SOURCE
-
-    echo "What's completed? (one item per line, empty line to finish):"
-    COMPLETED=""
-    while IFS= read -r line; do
-        [ -z "$line" ] && break
-        COMPLETED="$COMPLETED- [x] $line\n"
-    done
-
-    echo "What's in progress? (one line): "
-    read -r IN_PROGRESS
-
-    echo "Next steps? (one item per line, empty line to finish):"
-    NEXT_STEPS=""
-    STEP_NUM=1
-    while IFS= read -r line; do
-        [ -z "$line" ] && break
-        NEXT_STEPS="$NEXT_STEPS$STEP_NUM. $line\n"
-        ((STEP_NUM++))
-    done
-
-    echo "Key files modified? (one per line, empty line to finish):"
-    FILES=""
-    while IFS= read -r line; do
-        [ -z "$line" ] && break
-        FILES="$FILES| \`$line\` | |\n"
-    done
-
-    echo "Any gotchas/considerations? (one per line, empty line to finish):"
-    CONSIDERATIONS=""
-    while IFS= read -r line; do
-        [ -z "$line" ] && break
-        CONSIDERATIONS="$CONSIDERATIONS- $line\n"
-    done
-
+    
+    local task="${1:-}"
+    local context="${2:-}"
+    
+    print_header "Auto-generating Handoff"
+    
     TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-
+    BRANCH=$(get_branch)
+    MODIFIED_FILES=$(get_modified_files)
+    RECENT_COMMITS=$(get_recent_commits)
+    CHANGES_SUMMARY=$(get_changes_summary)
+    DIFF_STATS=$(get_diff_stats)
+    
+    # Build files table
+    FILES_TABLE=""
+    while IFS= read -r file; do
+        if [ -n "$file" ]; then
+            # Get file status
+            if git diff --cached --name-only | grep -q "^$file$" 2>/dev/null; then
+                status="staged"
+            elif git diff --name-only | grep -q "^$file$" 2>/dev/null; then
+                status="modified"
+            else
+                status="new/untracked"
+            fi
+            FILES_TABLE="$FILES_TABLE| \`$file\` | $status |\n"
+        fi
+    done <<< "$MODIFIED_FILES"
+    
+    # If no task provided, try to infer from recent commit
+    if [ -z "$task" ]; then
+        task=$(git log --oneline -1 --format="%s" 2>/dev/null || echo "Continuing development")
+    fi
+    
+    # Create main handoff file
     cat > "$HANDOFF_FILE" << EOF
 # Development Handoff
 
 **Generated**: $TIMESTAMP
-**From**: $SOURCE
-**Task**: $TASK
+**From**: Claude Code (auto-generated)
+**Branch**: $BRANCH
+**Task**: $task
 
 ## Current Goal
-$TASK
+$task
 
-## Completed
-$(echo -e "$COMPLETED")
+## Session Context
+${context:-"Auto-generated from git state. Review files and commits below for context."}
 
-## In Progress
-- [ ] $IN_PROGRESS
+## Git State Summary
+$CHANGES_SUMMARY
+${DIFF_STATS:+
+**Diff Stats**: $DIFF_STATS}
 
-## Next Steps
-$(echo -e "$NEXT_STEPS")
+## Recent Commits
+\`\`\`
+$RECENT_COMMITS
+\`\`\`
 
-## Files Modified
-| File | Changes |
-|------|---------|
-$(echo -e "$FILES")
+## Files Modified/Pending
+| File | Status |
+|------|--------|
+$(echo -e "$FILES_TABLE")
 
-## Considerations
-$(echo -e "$CONSIDERATIONS")
+## Uncommitted Changes
+$(if [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+    echo "\`\`\`"
+    git status --short 2>/dev/null
+    echo "\`\`\`"
+else
+    echo "No uncommitted changes"
+fi)
 
 ## Resume Instructions
 1. Read this handoff document
-2. Review the files listed above
-3. Continue with the next steps
+2. Check \`git status\` and \`git diff\` for current state
+3. Review the modified files listed above
+4. Continue with the task: $task
 EOF
 
-    echo -e "${GREEN}✓ Created $HANDOFF_FILE${NC}"
-
-    # Also create cursor handoff
-    create_cursor_handoff "$TASK" "$IN_PROGRESS" "$NEXT_STEPS"
-}
-
-quick_handoff() {
-    ensure_dirs
-
-    print_header "Quick Handoff"
-
-    read -p "Task (one line): " TASK
-    read -p "What's done (brief): " DONE
-    read -p "Next action (specific): " NEXT
-    read -p "Source (claude/cursor) [claude]: " SOURCE
-    SOURCE=${SOURCE:-claude}
-
-    TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-
-    cat > "$HANDOFF_FILE" << EOF
-# Development Handoff
-
-**Generated**: $TIMESTAMP
-**From**: $SOURCE
-**Task**: $TASK
-
-## Summary
-$DONE
-
-## Next Action
-$NEXT
-
-## Resume Instructions
-Continue with: $NEXT
-EOF
-
+    # Create cursor-friendly version
     cat > "$CURSOR_HANDOFF" << EOF
 # ACTIVE TASK HANDOFF
 
-**Task**: $TASK
-**From**: $SOURCE
+**Task**: $task
+**From**: Claude Code
 **Time**: $TIMESTAMP
+**Branch**: $BRANCH
 
-## Status
-$DONE
+## Git State
+$CHANGES_SUMMARY
+
+## Key Files
+$(echo -e "$FILES_TABLE" | head -10)
+
+## Context
+${context:-"Check git status and recent commits for context."}
+
+## Recent Commits
+$RECENT_COMMITS
 
 ## Next Action
-$NEXT
+Continue with: $task
+Review \`git diff\` to see current changes.
+
+---
+## Instructions for Cursor
+Start with: "I'm resuming from a handoff. Let me check the git state and modified files..."
+For full details see: dev/handoff/HANDOFF.md
 EOF
 
-    echo -e "${GREEN}✓ Created handoff files${NC}"
-    echo -e "  - $HANDOFF_FILE"
-    echo -e "  - $CURSOR_HANDOFF"
+    echo -e "${GREEN}Handoff generated from git state${NC}"
+    echo ""
+    echo -e "Branch: ${CYAN}$BRANCH${NC}"
+    echo -e "Task: ${CYAN}$task${NC}"
+    echo -e "Changes: ${CYAN}$CHANGES_SUMMARY${NC}"
+    echo ""
+    echo -e "${GREEN}Created:${NC}"
+    echo "  - $HANDOFF_FILE"
+    echo "  - $CURSOR_HANDOFF"
+    echo ""
+    echo -e "${YELLOW}In Cursor, start with:${NC}"
+    echo -e "${CYAN}\"Resume from handoff - read .cursor-handoff and git status\"${NC}"
 }
 
 show_status() {
@@ -189,7 +244,7 @@ show_status() {
     if [ -f "$HANDOFF_FILE" ]; then
         echo -e "${GREEN}Active handoff found:${NC}"
         echo ""
-        head -20 "$HANDOFF_FILE"
+        head -30 "$HANDOFF_FILE"
         echo ""
         echo -e "${CYAN}... (use 'cat $HANDOFF_FILE' for full content)${NC}"
     else
@@ -199,9 +254,12 @@ show_status() {
     echo ""
 
     if [ -f "$CURSOR_HANDOFF" ]; then
-        echo -e "${GREEN}Cursor handoff found:${NC}"
-        cat "$CURSOR_HANDOFF"
+        echo -e "${GREEN}Cursor handoff exists:${NC} $CURSOR_HANDOFF"
     fi
+    
+    echo ""
+    echo -e "${BLUE}Current git state:${NC}"
+    get_changes_summary
 }
 
 archive_handoff() {
@@ -210,12 +268,12 @@ archive_handoff() {
     if [ -f "$HANDOFF_FILE" ]; then
         ARCHIVE_NAME="handoff-$(date +%Y%m%d-%H%M%S).md"
         mv "$HANDOFF_FILE" "$ARCHIVE_DIR/$ARCHIVE_NAME"
-        echo -e "${GREEN}✓ Archived to $ARCHIVE_DIR/$ARCHIVE_NAME${NC}"
+        echo -e "${GREEN}Archived to $ARCHIVE_DIR/$ARCHIVE_NAME${NC}"
     fi
 
     if [ -f "$CURSOR_HANDOFF" ]; then
         rm "$CURSOR_HANDOFF"
-        echo -e "${GREEN}✓ Removed $CURSOR_HANDOFF${NC}"
+        echo -e "${GREEN}Removed $CURSOR_HANDOFF${NC}"
     fi
 }
 
@@ -225,98 +283,16 @@ show_history() {
     print_header "Handoff History"
 
     if [ -d "$ARCHIVE_DIR" ] && [ "$(ls -A $ARCHIVE_DIR 2>/dev/null)" ]; then
-        ls -la "$ARCHIVE_DIR"/*.md 2>/dev/null | while read -r line; do
-            echo "$line"
-        done
+        ls -la "$ARCHIVE_DIR"/*.md 2>/dev/null
     else
         echo -e "${YELLOW}No archived handoffs${NC}"
     fi
 }
 
-create_cursor_handoff() {
-    local task="$1"
-    local in_progress="$2"
-    local next_steps="$3"
-
-    TIMESTAMP=$(date +"%Y-%m-%d %H:%M:%S")
-
-    cat > "$CURSOR_HANDOFF" << EOF
-# ACTIVE TASK HANDOFF
-
-**Task**: $task
-**Time**: $TIMESTAMP
-
-## Current Status
-$in_progress
-
-## Next Steps
-$(echo -e "$next_steps")
-
-## Instructions for Cursor
-Start your message with: "I'm resuming from a handoff. Let me read the context..."
-Then reference this file and dev/handoff/HANDOFF.md for full details.
-EOF
-
-    echo -e "${GREEN}✓ Created $CURSOR_HANDOFF${NC}"
-}
-
-prepare_for_cursor() {
-    print_header "Prepare for Cursor"
-
-    if [ ! -f "$HANDOFF_FILE" ]; then
-        echo -e "${YELLOW}No handoff file found. Creating quick handoff...${NC}"
-        quick_handoff
-        return
-    fi
-
-    # Extract key info and create cursor-friendly version
-    TASK=$(grep "^\*\*Task\*\*:" "$HANDOFF_FILE" | sed 's/\*\*Task\*\*: //')
-
-    cat > "$CURSOR_HANDOFF" << EOF
-# ACTIVE TASK HANDOFF
-
-$(cat "$HANDOFF_FILE")
-
----
-
-## For Cursor
-When starting in Cursor, begin with:
-"I'm resuming work from a Claude Code handoff. Let me review the handoff document..."
-EOF
-
-    echo -e "${GREEN}✓ Cursor handoff ready at $CURSOR_HANDOFF${NC}"
-    echo ""
-    echo "In Cursor, start your conversation with:"
-    echo -e "${CYAN}\"Resume from handoff - read .cursor-handoff and continue the task\"${NC}"
-}
-
-prepare_for_claude() {
-    print_header "Prepare for Claude Code"
-
-    if [ -f "$CURSOR_HANDOFF" ]; then
-        # Append cursor session info to main handoff
-        echo "" >> "$HANDOFF_FILE"
-        echo "---" >> "$HANDOFF_FILE"
-        echo "## Cursor Session Notes" >> "$HANDOFF_FILE"
-        echo "*(Added $(date +"%Y-%m-%d %H:%M:%S"))*" >> "$HANDOFF_FILE"
-        echo "" >> "$HANDOFF_FILE"
-        cat "$CURSOR_HANDOFF" >> "$HANDOFF_FILE"
-
-        echo -e "${GREEN}✓ Updated $HANDOFF_FILE with Cursor session${NC}"
-    fi
-
-    echo ""
-    echo "In Claude Code, run:"
-    echo -e "${CYAN}/resume${NC}"
-}
-
 # Main
-case "${1:-help}" in
-    new)
-        create_handoff
-        ;;
-    quick)
-        quick_handoff
+case "${1:-auto}" in
+    auto)
+        auto_handoff "$2" "$3"
         ;;
     status)
         show_status
@@ -327,13 +303,11 @@ case "${1:-help}" in
     history)
         show_history
         ;;
-    cursor)
-        prepare_for_cursor
-        ;;
-    claude)
-        prepare_for_claude
-        ;;
-    help|*)
+    help|-h|--help)
         show_help
+        ;;
+    *)
+        # Treat unknown first arg as task description
+        auto_handoff "$1" "$2"
         ;;
 esac
