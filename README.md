@@ -106,6 +106,14 @@ Since Cursor doesn't run hooks, use these alternatives:
 │   │   └── SKILL.md
 │   ├── error-tracking/             # Sentry/monitoring patterns
 │   │   └── SKILL.md
+│   ├── github-code-reviewer/       # High-signal PR code reviews
+│   │   ├── SKILL.md
+│   │   ├── README.md
+│   │   ├── example-review.json
+│   │   └── scripts/
+│   │       ├── get_pr_info.py
+│   │       ├── get_pr_diff.py
+│   │       └── submit_review.py
 │   └── skill-developer/            # Meta-skill for creating skills
 │       ├── SKILL.md
 │       ├── TRIGGER_TYPES.md
@@ -227,6 +235,31 @@ Slash commands expand into full prompts:
 - `/dev-docs-update` - Update docs before context compaction
 - `/code-review` - Perform architectural code review
 - `/create-dev-docs` - Generate doc files from plans
+
+### GitHub Code Reviewer Skill
+
+High signal, low noise code reviews for GitHub PRs. Flags only critical issues:
+
+**Usage:**
+```
+"Review PR https://github.com/owner/repo/pull/123"
+"Perform a code review on pull request #456"
+```
+
+**What it flags:**
+- ✅ Bugs: Crashes, logic errors, nil panics, unhandled errors
+- ✅ Security: SQL injection, XSS, auth bypass, credential leaks
+- ✅ Performance: N+1 queries, inefficient algorithms, memory leaks
+- ✅ Breaking changes: API incompatibilities
+
+**What it skips:**
+- ❌ Style, formatting, naming conventions
+- ❌ Minor improvements or refactoring suggestions
+- ❌ Nits, typos, positive feedback
+
+**Requirements:**
+- GitHub CLI (`brew install gh`)
+- Authentication (`gh auth login`)
 - `/handoff` - Generate handoff document for tool transition
 - `/resume` - Resume work from a handoff document
 
